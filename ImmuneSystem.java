@@ -25,8 +25,8 @@ public class ImmuneSystem {
         int minMatch = Integer.MAX_VALUE;
         int matchIndex = -1;
 
-        for (int i = 0; i < SYSTEM_LENGTH - d.getDisease().lengh(); i++){
-            int match =  match(d.getDisease, i);
+        for (int i = 0; i < SYSTEM_LENGTH - d.getDisease().length(); i++){
+            int match =  match(d.getDisease(), i);
 
             //if match is 0, dont add disease, person is immune
             if (match == 0) return;
@@ -50,7 +50,7 @@ public class ImmuneSystem {
     }
 
     public void update(){
-        
+
     }
 
     public double getMetabolismChange(){
