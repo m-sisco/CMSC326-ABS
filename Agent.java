@@ -42,6 +42,7 @@ public class Agent
     public int    getRow() { return this.row; }
     public int    getCol() { return this.col; }
     public String getID()  { return this.id;  }
+    public ImmuneSystem getImmuneSys()  {return immune;}
 
     // simple mutator methods below
     public void   setRowCol(int row, int col)
