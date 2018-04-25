@@ -8,7 +8,7 @@ public class Disease {
 
     public Disease(){
         Random r = new Random();
-        int l = r.nextInt(11)+5;
+        int l = r.nextInt(10)+1;
         for (int i = 0; i < l; i++){
             int s = r.nextInt(2);
             disease = disease + s;
