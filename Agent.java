@@ -20,6 +20,8 @@ public class Agent
     private double maxAge;
 
 
+
+    private ImmuneSystem immune;
     public Agent( String id, double currentTime )
     {
         this.id = id;
@@ -32,6 +34,8 @@ public class Agent
 
         maxAge = r.nextDouble() * 40 + 60;
         deathTime = currentTime + maxAge;
+        immune = new ImmuneSystem();
+        
     }
 
     // simple accessor methods below
@@ -66,7 +70,7 @@ public class Agent
 
     public double getMetabolicRate()
     {
-        return metabolicRate;
+        return metabolicRate + immune.getMetabolismChange();
     }
 
 
