@@ -70,9 +70,11 @@ public class ImmuneSystem {
             if (change){
                 if (match(d.getDisease(), start) == 0){
                     diseaseList.remove(j);
+                    indexMap.remove(d);
                 }
             } else {
                 diseaseList.remove(j);
+                indexMap.remove(d);
             }
         }
     }
