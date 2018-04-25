@@ -35,7 +35,7 @@ public class Agent
         maxAge = r.nextDouble() * 40 + 60;
         deathTime = currentTime + maxAge;
         immune = new ImmuneSystem();
-        
+
     }
 
     // simple accessor methods below
