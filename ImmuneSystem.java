@@ -8,7 +8,7 @@ public class ImmuneSystem {
     private ArrayList<Disease> diseaseList;
     private HashMap<Disease, Integer> indexMap;
 
-    public static int SYSTEM_LENGTH = 50;
+    private static int SYSTEM_LENGTH = 50;
 
     public ImmuneSystem(){
         diseaseList = new ArrayList<Disease>();
@@ -50,7 +50,28 @@ public class ImmuneSystem {
     }
 
     public void update(){
+        for (int j = diseaseList.size()-1; j >= 0; j--){
+            Disease d = diseaseList.get(j);
+            int start = indexMap.get(d);
 
+            boolean change = false;
+            for (int i = 0; i < d.getDisease().length() && ! change; i++){
+                if (d.getDisease().charAt(i) != bitString.charAt(i+start)){
+                    StringBuilder sb = new StringBuilder(bitString);
+                    sb.setCharAt(i+start, d.getDisease().charAt(i));
+                    bitString = sb.toString();
+                    change = true;
+                }
+            }
+
+            if (change){
+                if (match(d.getDisease(), start) == 0){
+                    diseaseList.remove(j);
+                }
+            } else {
+                diseaseList.remove(j);
+            }
+        }
     }
 
     public double getMetabolismChange(){
