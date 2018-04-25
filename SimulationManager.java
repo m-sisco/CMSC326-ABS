@@ -1,10 +1,8 @@
 import squint.*;
 import javax.swing.*;
 import java.awt.BorderLayout;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.PriorityQueue;
-import java.util.Random;
+import java.util.*;
+
 
 class SimulationManager extends GUIManager
 {
@@ -28,6 +26,8 @@ class SimulationManager extends GUIManager
     private double time;  // the simulation time
 
     private PriorityQueue<Event> eventCalendar = new PriorityQueue<>();
+
+    private ArrayList<Disease> diseases = new ArrayList<>();
 
     // comparator for ordering cells when an agent moves
     // so that cells with the most resources are first in priority queue
@@ -55,6 +55,12 @@ class SimulationManager extends GUIManager
     //======================================================================
     public SimulationManager(int gridSize, int numAgents, int initialSeed)
     {
+        // generate diseases
+        for ( int i = 0; i < diseases.size(); ++i )
+        {
+            diseases.add( new Disease() );
+        }
+
 
         this.gridSize  = gridSize;
         this.agentList = new ArrayList<Agent>();
@@ -65,6 +71,7 @@ class SimulationManager extends GUIManager
 
         landscape = new Landscape(gridSize, gridSize);
 
+        // generate agents and place in the landscape
         for (int i = 0; i < numAgents; i++)
         {
             Agent a = new Agent("agent ", time);
@@ -79,11 +86,25 @@ class SimulationManager extends GUIManager
                 col = rng.nextInt(gridSize); // an int in [0, gridSize-1]
             }
 
-            // we should check to make sure the cell isn't already occupied!
 
             a.setRowCol(row, col);
             a.addWealth( landscape.getCellAt( row, col ).getResourceLevel() );
+            landscape.getCellAt( row, col ).setAgent( a );
 
+            // start each agent with 10 random, distinct diseases
+            int numDiseases = 10;
+            ImmuneSystem agentImmuneSystem = a.getImmuneSys();
+
+            // mix up the disease list to get 10 random, distinct diseases
+            Collections.shuffle( diseases );
+
+
+            for ( int j = 0; j < numDiseases; ++j )
+            {
+                a.getImmuneSys().add( diseases.get( j ) );
+            }
+
+            // determine this agent's next event
             setFutureEvent( a );
         }
 
@@ -119,7 +140,7 @@ class SimulationManager extends GUIManager
 
         Event nextEvent = eventCalendar.poll();
 
-        // bogus simulation code below...
+        // get each event in the calendar until maxTime
         while ( nextEvent.getTime() < maxTime )
         {
             time = nextEvent.getTime();
@@ -129,10 +150,17 @@ class SimulationManager extends GUIManager
             {
                 move( nextEvent.getAgent() );
             }
-            else
+            else if ( nextEvent.getType().equals( "immune system" ) )
             {
+                updateImmuneSystem( nextEvent.getAgent() );
+            }
+            else if ( nextEvent.getType().equals( "death" ) )
+            {
+                // remove the dead agent from the landscape
                 landscape.getCellAt( nextEvent.getAgent().getRow(), nextEvent.getAgent().getCol() ).setOccupied( false );
                 agentList.remove( nextEvent.getAgent() );
+
+                // generate a new agent to replace it and place it randomly in the landscape
 
                 Agent newAgent = new Agent( "agent", time );
 
@@ -147,6 +175,7 @@ class SimulationManager extends GUIManager
 
                 newAgent.setRowCol(row, col);
                 newAgent.addWealth( landscape.getCellAt( row, col ).getResourceLevel() );
+                landscape.getCellAt( row, col ).setAgent( newAgent );
 
                 agentList.add( newAgent );
 
@@ -171,6 +200,9 @@ class SimulationManager extends GUIManager
     }
 
 
+    /*
+     * Moves Agent a to the closest cell within its vision that has the most resources.
+     */
     public void move( Agent a )
     {
         PriorityQueue<Cell> cellsWithinVision = new PriorityQueue<>( 11, comparator );
@@ -214,8 +246,9 @@ class SimulationManager extends GUIManager
         }
 
         // need to randomly break ties
-        ArrayList<Cell> candidateCells = new ArrayList<>();
 
+        // add all equal cells to a list
+        ArrayList<Cell> candidateCells = new ArrayList<>();
         candidateCells.add( cellsWithinVision.poll() );
 
         while( !cellsWithinVision.isEmpty() &&
@@ -224,6 +257,7 @@ class SimulationManager extends GUIManager
             candidateCells.add( cellsWithinVision.poll() );
         }
 
+        // get a random cell to move to from the cells in the list
         Cell newCell = candidateCells.get( rng.nextInt( candidateCells.size() ) );
 
         landscape.getCellAt( a.getRow(), a.getCol() ).setOccupied( false );
@@ -232,12 +266,69 @@ class SimulationManager extends GUIManager
         a.setRowCol( newCell.getRow(), newCell.getCol() );
         a.addWealth( newCell.getResourceLevel() );
         newCell.setOccupied( true );
+        newCell.setAgent( a );
+
+
+        // get diseases from the agent
+        int diseasesPresent = a.getImmuneSys().size();
+
+        // get all of the agent's neighbors
+        ArrayList<Agent> neighbors = new ArrayList<>();
+
+        // check if the cells adjacent to the agent are occupied and add the agent there if so
+        if ( landscape.getCellAt( a.getRow() - 1, a.getCol() ).isOccupied() )
+        {
+            neighbors.add( landscape.getCellAt( a.getRow() - 1, a.getCol() ).getAgent() );
+        }
+
+        for ( int i = 0; i < neighbors.size(); ++i )
+        {
+            // infect the neighbor with a random disease from a
+            infect( neighbors.get( i ), a.getImmuneSys().get( rng.nextInt( diseasesPresent ) ) );
+        }
 
         a.setNextMoveTime( getMoveTime() );
         setFutureEvent( a );
     }
 
 
+    /*
+     * Adds the given disease to the agent's immune system and updates the metabolism.
+     */
+    public void infect( Agent a, Disease d )
+    {
+        Cell currentCell = landscape.getCellAt( a.getRow(), a.getCol() );
+
+        // update a's resources based on its cell and metabolism
+        double addedWealth = currentCell.getRegrowthRate() * ( time - currentCell.getTimeLastDepleted() );
+        double metabolized = a.getMetabolicRate() * ( time - currentCell.getTimeLastDepleted() );
+
+        // TODO: make sure timeLastDepleted() is getting set
+
+        a.addWealth( addedWealth - metabolized );
+
+        // add the disease to a's immune system
+        a.getImmuneSys().add( d );
+    }
+
+
+    /*
+     * Updates the agent's immune system based on its diseases and how long it has been infected with each.
+     */
+    public void updateImmuneSystem( Agent a )
+    {
+        /* since agents get infected from neighbors moving nearby, need a way to determine
+         * which disease is being updated here -- they shouldn't all happen at the same time,
+         * they'll happen one unit of time after infection
+         */
+
+        a.getImmuneSys().update();
+    }
+
+
+    /*
+     * Determines the next event placed in the event queue for Agent a.
+     */
     private void setFutureEvent( Agent a )
     {
         Cell newCell = landscape.getCellAt( a.getRow(), a.getCol() );
@@ -247,34 +338,38 @@ class SimulationManager extends GUIManager
         if ( a.getDeathTime() < nextMove )
         {
             eventCalendar.add( new Event( "death", a.getDeathTime(), a ) );
-            return;
-        }
-
-
-        double addedWealth = landscape.getCellAt( newCell.getRow(), newCell.getCol() ).getRegrowthRate() * ( nextMove
-                                                                                                             - time );
-        double metabolized = a.getMetabolicRate() * ( nextMove - time );
-        double newWealth = a.getWealth() + addedWealth - metabolized;
-
-        if ( newWealth <= 0 )
-        {
-            double slope = ( newWealth - a.getWealth() ) / ( nextMove - time );
-
-            double deathTime = ( ( -1 * a.getWealth() ) / slope ) + time;
-
-            a.setDeathTime( deathTime );
-
-            Event death = new Event( "death", deathTime, a );
-            eventCalendar.add( death );
         }
         else
         {
-            Event move = new Event( "move", nextMove, a );
-            eventCalendar.add( move );
+            // determine whether the agent will starve before its next movement
+            double addedWealth = landscape.getCellAt( newCell.getRow(), newCell.getCol() ).getRegrowthRate() * ( nextMove
+
+                                                                                                                 - time );
+            double metabolized = a.getMetabolicRate() * ( nextMove - time );
+            double newWealth = a.getWealth() + addedWealth - metabolized;
+
+            // if its wealth drops to 0, it will die before it can move again
+            if ( newWealth <= 0 )
+            {
+                double slope = ( newWealth - a.getWealth() ) / ( nextMove - time );
+
+                double deathTime = ( ( -1 * a.getWealth() ) / slope ) + time;
+
+                a.setDeathTime( deathTime );
+
+                Event death = new Event( "death", deathTime, a );
+                eventCalendar.add( death );
+            }
+            else
+            {
+                Event move = new Event( "move", nextMove, a );
+                eventCalendar.add( move );
+            }
         }
     }
 
 
+    // generates the next time an agent moves
     public double getMoveTime()
     {
         return ( Math.log( 1 - rng.nextDouble() ) / ( -1 ) ) + time;

@@ -10,6 +10,8 @@ public class Cell
     private int row;
     private int col;
 
+    private Agent occupyingAgent = null;
+
 
     public Cell( double _resourceCapacity, int _regrowthRate, int _row, int _col )
     {
@@ -99,5 +101,17 @@ public class Cell
     public void setTimeLastDepleted( double time )
     {
         timeLastDepleted = time;
+    }
+
+
+    public Agent getAgent()
+    {
+        return occupyingAgent;
+    }
+
+
+    public void setAgent( Agent incoming )
+    {
+        occupyingAgent = incoming;
     }
 }
