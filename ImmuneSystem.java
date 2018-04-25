@@ -40,6 +40,9 @@ public class ImmuneSystem {
         indexMap.put(d, matchIndex);
     }
 
+    public Disease get(int index){return diseaseList.get(index);}
+    public int size(){return diseaseList.size();}
+
     private int match(String s, int index){
         int dif = 0;
         for (int i = 0; i < s.length(); i++){
