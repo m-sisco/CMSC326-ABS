@@ -14,7 +14,7 @@ public class ImmuneSystem {
     public ImmuneSystem(){
         diseaseList = new ArrayList<Disease>();
         indexMap = new HashMap<Disease, Integer>();
-        updates = new PriorityQueue<>();
+        updates = new PriorityQueue<>( 10, comparator );
 
         bitString = "";
         Random r = new Random();
@@ -42,7 +42,7 @@ public class ImmuneSystem {
         indexMap.put(d, matchIndex);
 
         // pair disease with time to determine which one should be updated next
-        Event diseaseUpdate = new Event( "update", time, null ); // don't really need to connect an agent to these
+        Event diseaseUpdate = new Event( "update", time + 1, null ); // don't really need to connect an agent to these
         updates.add( new Pair<>( d, diseaseUpdate ) );
     }
 
@@ -61,6 +61,13 @@ public class ImmuneSystem {
     public void update(){
             Pair<Disease, Event> nextUpdate = updates.poll();
             Disease d = nextUpdate.getKey();
+
+            System.out.println( "Target disease: " + d.getDisease() );
+
+            for ( Disease disease : indexMap.keySet() )
+            {
+                System.out.println( disease.getDisease() );
+            }
 
             int start = indexMap.get(d);
             int j = diseaseList.indexOf( d );
@@ -99,6 +106,11 @@ public class ImmuneSystem {
 
     public double getNextUpdateTime()
     {
+        if ( updates.isEmpty() )
+        {
+            return Double.MAX_VALUE;
+        }
+
         return updates.peek().getValue().getTime();
     }
 

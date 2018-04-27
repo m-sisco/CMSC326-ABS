@@ -4,9 +4,10 @@ import java.util.Random;
  * Created by Marissa on 4/23/2018.
  */
 public class Disease {
-    private String disease;
+    private String disease = new String();
 
     public Disease(){
+
         Random r = new Random();
         int l = r.nextInt(10)+1;
         for (int i = 0; i < l; i++){
@@ -21,7 +22,7 @@ public class Disease {
         int mut = r.nextInt(10);
         String dis = d.getDisease();
         int len = dis.length();
-        String newDis;
+        String newDis = new String("");
         if(mut == 0){
             int bit = r.nextInt(len);
             for(int i = 0; i < len; i++){
@@ -43,12 +44,5 @@ public class Disease {
     public String getDisease(){
         return disease;
     }
-
-    public static void main(String [] args){
-        Disease d;
-        System.out.print(d.getDisease());
-    }
-
-
 
 }

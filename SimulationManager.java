@@ -29,6 +29,8 @@ class SimulationManager extends GUIManager
 
     private ArrayList<Disease> diseases = new ArrayList<>();
 
+    private int numDiseases = 25;
+
     // comparator for ordering cells when an agent moves
     // so that cells with the most resources are first in priority queue
     Comparator<Cell> comparator = new Comparator<Cell>()
@@ -56,7 +58,7 @@ class SimulationManager extends GUIManager
     public SimulationManager(int gridSize, int numAgents, int initialSeed)
     {
         // generate diseases
-        for ( int i = 0; i < diseases.size(); ++i )
+        for ( int i = 0; i < numDiseases; ++i )
         {
             diseases.add( new Disease() );
         }
@@ -280,23 +282,28 @@ class SimulationManager extends GUIManager
         // get diseases from the agent
         int diseasesPresent = a.getImmuneSys().size();
 
-        // get all of the agent's neighbors
-        ArrayList<Agent> neighbors = new ArrayList<>();
-
-        // check if the cells adjacent to the agent are occupied and add the agent there if so
-        if ( landscape.getCellAt( a.getRow() - 1, a.getCol() ).isOccupied() )
+        // if the agent has diseases, infect neighbors
+        if ( diseasesPresent > 0 )
         {
-            neighbors.add( landscape.getCellAt( a.getRow() - 1, a.getCol() ).getAgent() );
-        }
 
-        for ( int i = 0; i < neighbors.size(); ++i )
-        {
-            // infect the neighbor with a random disease from a
-            infect( neighbors.get( i ), a.getImmuneSys().get( rng.nextInt( diseasesPresent ) ) );
-        }
+            // get all of the agent's neighbors
+            ArrayList<Agent> neighbors = new ArrayList<>();
 
-        a.setNextMoveTime( getMoveTime() );
-        setFutureEvent( a );
+            // check if the cells adjacent to the agent are occupied and add the agent there if so
+            if ( landscape.getCellAt( ( a.getRow() - 1 + gridSize ) % gridSize, a.getCol() ).isOccupied() )
+            {
+                neighbors.add( landscape.getCellAt( (a.getRow() - 1 + gridSize) % gridSize, a.getCol() ).getAgent() );
+            }
+
+            for ( int i = 0; i < neighbors.size(); ++i )
+            {
+                // infect the neighbor with a random disease from a
+                infect( neighbors.get( i ), a.getImmuneSys().get( rng.nextInt( diseasesPresent ) ) );
+            }
+
+            a.setNextMoveTime( getMoveTime() );
+            setFutureEvent( a );
+        }
     }
 
 
@@ -317,9 +324,20 @@ class SimulationManager extends GUIManager
         // add the disease to a's immune system
         a.getImmuneSys().add( d, time );
 
+        double nextEventTime = a.getNextEvent().getTime();
+
+        // if the agent's next event occurs after the update, remove it from the event calendar
+        if ( nextEventTime < time + 1 )
+        {
+            eventCalendar.remove( a.getNextEvent() );
+            Event update = new Event( "update", time + 1, a );
+            eventCalendar.add( update );
+            a.setNextEvent( update );
+            nextEventTime = time + 1;
+        }
+
 
         // check whether the agent will starve before its next event
-        double nextEventTime = a.getNextEvent().getTime();
 
         double futureRegrowth = currentCell.getRegrowthRate() * ( nextEventTime - time );
         double wealthUsed = a.getMetabolicRate() * ( nextEventTime - time );
