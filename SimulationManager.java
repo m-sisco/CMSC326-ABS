@@ -150,9 +150,10 @@ class SimulationManager extends GUIManager
             {
                 move( nextEvent.getAgent() );
             }
-            else if ( nextEvent.getType().equals( "immune system" ) )
+            else if ( nextEvent.getType().equals( "update" ) )
             {
-                updateImmuneSystem( nextEvent.getAgent() );
+                // TODO: get disease that should be updated and do update
+                // then set next event
             }
             else if ( nextEvent.getType().equals( "death" ) )
             {
@@ -269,6 +270,8 @@ class SimulationManager extends GUIManager
         newCell.setAgent( a );
 
 
+        // infect each neighbor with a random disease
+
         // get diseases from the agent
         int diseasesPresent = a.getImmuneSys().size();
 
@@ -303,26 +306,38 @@ class SimulationManager extends GUIManager
         double addedWealth = currentCell.getRegrowthRate() * ( time - currentCell.getTimeLastDepleted() );
         double metabolized = a.getMetabolicRate() * ( time - currentCell.getTimeLastDepleted() );
 
-        // TODO: make sure timeLastDepleted() is getting set
-
         a.addWealth( addedWealth - metabolized );
+        currentCell.setTimeLastDepleted( time );
 
         // add the disease to a's immune system
         a.getImmuneSys().add( d );
-    }
 
+        // check whether the agent will starve before its next event
+        double nextEventTime = a.getNextEvent().getTime();
 
-    /*
-     * Updates the agent's immune system based on its diseases and how long it has been infected with each.
-     */
-    public void updateImmuneSystem( Agent a )
-    {
-        /* since agents get infected from neighbors moving nearby, need a way to determine
-         * which disease is being updated here -- they shouldn't all happen at the same time,
-         * they'll happen one unit of time after infection
-         */
+        double futureRegrowth = currentCell.getRegrowthRate() * ( nextEventTime - time );
+        double wealthUsed = a.getMetabolicRate() * ( nextEventTime - time );
 
-        a.getImmuneSys().update();
+        double futureWealth = a.getWealth() + futureRegrowth - wealthUsed;
+
+        // if the agent's wealth goes to zero, it starves before its next event
+        if ( futureWealth <= 0 )
+        {
+            // determine when it will starve
+            double slope = ( futureWealth - a.getWealth() ) / ( nextEventTime - time );
+
+            double deathTime = ( ( -1 * a.getWealth() ) / slope ) + time;
+
+            a.setDeathTime( deathTime );
+
+            // add death event
+            Event death = new Event( "death", deathTime, a );
+            eventCalendar.add( death );
+            a.setNextEvent( death );
+
+            // remove previous event from event calendar
+            eventCalendar.remove( a.getNextEvent() );
+        }
     }
 
 
@@ -359,11 +374,14 @@ class SimulationManager extends GUIManager
 
                 Event death = new Event( "death", deathTime, a );
                 eventCalendar.add( death );
+                a.setNextEvent( death );
             }
             else
             {
+                // TODO: determine whether next event will be a move or an immmune system update
                 Event move = new Event( "move", nextMove, a );
                 eventCalendar.add( move );
+                a.setNextEvent( move );
             }
         }
     }

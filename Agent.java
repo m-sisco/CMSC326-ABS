@@ -19,6 +19,8 @@ public class Agent
 
     private double maxAge;
 
+    private Event nextEvent;
+
 
 
     private ImmuneSystem immune;
@@ -96,6 +98,16 @@ public class Agent
     public void setDeathTime( double starvation )
     {
         deathTime = starvation;
+    }
+
+    public void setNextEvent( Event next )
+    {
+        nextEvent = next;
+    }
+
+    public Event getNextEvent()
+    {
+        return nextEvent;
     }
 }
 
