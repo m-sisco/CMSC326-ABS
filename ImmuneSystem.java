@@ -24,6 +24,12 @@ public class ImmuneSystem {
     }
 
     public void add(Disease d, double time){
+
+        // first check whether the agent already has this disease
+        if ( indexMap.get( d ) != null ) {
+            return;
+        }
+
         int minMatch = Integer.MAX_VALUE;
         int matchIndex = -1;
 
@@ -62,14 +68,7 @@ public class ImmuneSystem {
             Pair<Disease, Event> nextUpdate = updates.poll();
             Disease d = nextUpdate.getKey();
 
-            System.out.println( "Target disease: " + d.getDisease() );
-
-            for ( Disease disease : indexMap.keySet() )
-            {
-                System.out.println( disease.getDisease() );
-            }
-
-            int start = indexMap.get(d);
+            int start = indexMap.get( d );
             int j = diseaseList.indexOf( d );
 
             boolean change = false;
@@ -104,10 +103,8 @@ public class ImmuneSystem {
     }
 
 
-    public double getNextUpdateTime()
-    {
-        if ( updates.isEmpty() )
-        {
+    public double getNextUpdateTime() {
+        if ( updates.isEmpty() ) {
             return Double.MAX_VALUE;
         }
 
@@ -116,11 +113,9 @@ public class ImmuneSystem {
 
 
     // sorts <disease, event> pairs by event time
-    Comparator<Pair<Disease, Event>> comparator = new Comparator<Pair<Disease, Event>>()
-    {
+    Comparator<Pair<Disease, Event>> comparator = new Comparator<Pair<Disease, Event>>() {
         @Override
-        public int compare( Pair<Disease, Event> pair1, Pair<Disease, Event> pair2 )
-        {
+        public int compare( Pair<Disease, Event> pair1, Pair<Disease, Event> pair2 ) {
             return pair1.getValue().compareTo( pair2.getValue() );
         }
     };

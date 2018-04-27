@@ -57,10 +57,19 @@ class SimulationManager extends GUIManager
     //======================================================================
     public SimulationManager(int gridSize, int numAgents, int initialSeed)
     {
-        // generate diseases
-        for ( int i = 0; i < numDiseases; ++i )
+        HashSet<Disease> diseaseSet = new HashSet<>();
+
+        // generate diseases in a set so that they are unique
+        while( diseaseSet.size() < numDiseases )
         {
-            diseases.add( new Disease() );
+            diseaseSet.add( new Disease() );
+        }
+
+
+        // copy into ArrayList (to more easily pick random diseases for agents)
+        for ( Disease d : diseaseSet )
+        {
+            diseases.add( d );
         }
 
 
@@ -147,7 +156,6 @@ class SimulationManager extends GUIManager
         {
             time = nextEvent.getTime();
 
-
             if ( nextEvent.getType().equals( "move" ) )
             {
                 move( nextEvent.getAgent() );
@@ -212,11 +220,17 @@ class SimulationManager extends GUIManager
      */
     public void move( Agent a )
     {
-        PriorityQueue<Cell> cellsWithinVision = new PriorityQueue<>( 11, comparator );
+        PriorityQueue<Cell> cellsWithinVision = new PriorityQueue<>( a.getVision() * 4, comparator );
 
         Cell currentCell = landscape.getCellAt( a.getRow(), a.getCol() );
-        currentCell.setResourceLevel( ( time - currentCell.getTimeLastDepleted() ) * currentCell.getRegrowthRate() );
 
+        // update agent's wealth
+        a.addWealth( ( time - currentCell.getTimeLastDepleted() ) * currentCell.getRegrowthRate() );
+
+        currentCell.setResourceLevel( 0 );
+        currentCell.setTimeLastDepleted( time );
+
+        // add current cell as an option in case all cells are at 0/occupied
         cellsWithinVision.add( currentCell );
 
 
@@ -273,8 +287,10 @@ class SimulationManager extends GUIManager
 
         a.setRowCol( newCell.getRow(), newCell.getCol() );
         a.addWealth( newCell.getResourceLevel() );
+
         newCell.setOccupied( true );
         newCell.setAgent( a );
+        newCell.setTimeLastDepleted( time );
 
 
         // infect each new neighbor with a random disease
@@ -285,7 +301,6 @@ class SimulationManager extends GUIManager
         // if the agent has diseases, infect neighbors
         if ( diseasesPresent > 0 )
         {
-
             // get all of the agent's neighbors
             ArrayList<Agent> neighbors = new ArrayList<>();
 
@@ -295,15 +310,31 @@ class SimulationManager extends GUIManager
                 neighbors.add( landscape.getCellAt( (a.getRow() - 1 + gridSize) % gridSize, a.getCol() ).getAgent() );
             }
 
+            if ( landscape.getCellAt( ( a.getRow() + 1 + gridSize ) % gridSize, a.getCol() ).isOccupied() )
+            {
+                neighbors.add( landscape.getCellAt( (a.getRow() + 1 + gridSize) % gridSize, a.getCol() ).getAgent() );
+            }
+
+            if ( landscape.getCellAt( a.getRow(), ( a.getCol() - 1 + gridSize ) % gridSize ).isOccupied() )
+            {
+                neighbors.add( landscape.getCellAt( a.getRow(), ( a.getCol() - 1 + gridSize ) % gridSize ).getAgent() );
+            }
+
+            if ( landscape.getCellAt( a.getRow(), ( a.getCol() + 1 + gridSize ) % gridSize ).isOccupied() )
+            {
+                neighbors.add( landscape.getCellAt( a.getRow(), ( a.getCol() + 1 + gridSize ) % gridSize ).getAgent() );
+            }
+
+
             for ( int i = 0; i < neighbors.size(); ++i )
             {
                 // infect the neighbor with a random disease from a
                 infect( neighbors.get( i ), a.getImmuneSys().get( rng.nextInt( diseasesPresent ) ) );
             }
-
-            a.setNextMoveTime( getMoveTime() );
-            setFutureEvent( a );
         }
+
+        a.setNextMoveTime( getMoveTime() );
+        setFutureEvent( a );
     }
 
 
@@ -324,18 +355,16 @@ class SimulationManager extends GUIManager
         // add the disease to a's immune system
         a.getImmuneSys().add( d, time );
 
-        double nextEventTime = a.getNextEvent().getTime();
+        double nextEventTime = Math.min( a.getNextMoveTime(), a.getImmuneSys().getNextUpdateTime() );
 
-        // if the agent's next event occurs after the update, remove it from the event calendar
-        if ( nextEventTime < time + 1 )
+
+        // if the agent's next event occurs after the update, add the update to the event calendar
+        if ( nextEventTime > time + 1 )
         {
-            eventCalendar.remove( a.getNextEvent() );
-            Event update = new Event( "update", time + 1, a );
-            eventCalendar.add( update );
-            a.setNextEvent( update );
+            Event updateEvent = new Event( "update", time + 1, a );
+            eventCalendar.add( updateEvent );
             nextEventTime = time + 1;
         }
-
 
         // check whether the agent will starve before its next event
 
@@ -349,18 +378,30 @@ class SimulationManager extends GUIManager
         {
             // determine when it will starve
             double slope = ( futureWealth - a.getWealth() ) / ( nextEventTime - time );
-
             double deathTime = ( ( -1 * a.getWealth() ) / slope ) + time;
 
             a.setDeathTime( deathTime );
+
+            // need to remove any other events with this agent
+            ArrayList<Event> removeList = new ArrayList<>();
+
+            for ( Event e : eventCalendar )
+            {
+                if ( e.getAgent() == a )
+                {
+                    removeList.add( e );
+                }
+            }
+
+            for ( Event e : removeList )
+            {
+                eventCalendar.remove( e );
+            }
 
             // add death event
             Event death = new Event( "death", deathTime, a );
             eventCalendar.add( death );
             a.setNextEvent( death );
-
-            // remove previous event from event calendar
-            eventCalendar.remove( a.getNextEvent() );
         }
     }
 
@@ -375,11 +416,25 @@ class SimulationManager extends GUIManager
         double nextMove = a.getNextMoveTime();
         double nextUpdate = a.getImmuneSys().getNextUpdateTime();
 
-        double nextEventTime = Math.min( nextMove, nextUpdate );
+        Event nextEvent;
+
+        if ( nextMove < nextUpdate )
+        {
+            nextEvent = new Event( "move", nextMove, a );
+        }
+        else
+        {
+            nextEvent = new Event( "update", nextUpdate, a );
+        }
+
+
+        double nextEventTime = nextEvent.getTime();
 
         if ( a.getDeathTime() < nextEventTime )
         {
-            eventCalendar.add( new Event( "death", a.getDeathTime(), a ) );
+            Event death = new Event( "death", a.getDeathTime(), a );
+            eventCalendar.add( death );
+            a.setNextEvent( death );
         }
         else
         {
@@ -404,18 +459,8 @@ class SimulationManager extends GUIManager
             }
             else
             {
-                if ( nextEventTime == nextMove )
-                {
-                    Event move = new Event( "move", nextMove, a );
-                    eventCalendar.add( move );
-                    a.setNextEvent( move );
-                }
-                else if ( nextEventTime == nextUpdate )
-                {
-                    Event update = new Event( "update", nextUpdate, a );
-                    eventCalendar.add( update );
-                    a.setNextEvent( update );
-                }
+                eventCalendar.add( nextEvent );
+                a.setNextEvent( nextEvent );
             }
         }
     }
