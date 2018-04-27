@@ -101,7 +101,7 @@ class SimulationManager extends GUIManager
 
             for ( int j = 0; j < numDiseases; ++j )
             {
-                a.getImmuneSys().add( diseases.get( j ) );
+                a.getImmuneSys().add( diseases.get( j ), 0 );
             }
 
             // determine this agent's next event
@@ -152,8 +152,12 @@ class SimulationManager extends GUIManager
             }
             else if ( nextEvent.getType().equals( "update" ) )
             {
-                // TODO: get disease that should be updated and do update
-                // then set next event
+                // update the next disease in agent's immune system
+                Agent a = nextEvent.getAgent();
+                a.getImmuneSys().update();
+
+                // determine the agent's next event
+                setFutureEvent( a );
             }
             else if ( nextEvent.getType().equals( "death" ) )
             {
@@ -213,7 +217,8 @@ class SimulationManager extends GUIManager
 
         cellsWithinVision.add( currentCell );
 
-        // add cells within agent's vision
+
+        // add cells within agent's vision to priority queue
         for ( int j = 1; j <= a.getVision(); ++j )
         {
             Cell right = landscape.getCellAt( ( a.getRow() + j ) % gridSize, a.getCol() );
@@ -270,7 +275,7 @@ class SimulationManager extends GUIManager
         newCell.setAgent( a );
 
 
-        // infect each neighbor with a random disease
+        // infect each new neighbor with a random disease
 
         // get diseases from the agent
         int diseasesPresent = a.getImmuneSys().size();
@@ -310,7 +315,8 @@ class SimulationManager extends GUIManager
         currentCell.setTimeLastDepleted( time );
 
         // add the disease to a's immune system
-        a.getImmuneSys().add( d );
+        a.getImmuneSys().add( d, time );
+
 
         // check whether the agent will starve before its next event
         double nextEventTime = a.getNextEvent().getTime();
@@ -349,21 +355,23 @@ class SimulationManager extends GUIManager
         Cell newCell = landscape.getCellAt( a.getRow(), a.getCol() );
 
         double nextMove = a.getNextMoveTime();
+        double nextUpdate = a.getImmuneSys().getNextUpdateTime();
 
-        if ( a.getDeathTime() < nextMove )
+        double nextEventTime = Math.min( nextMove, nextUpdate );
+
+        if ( a.getDeathTime() < nextEventTime )
         {
             eventCalendar.add( new Event( "death", a.getDeathTime(), a ) );
         }
         else
         {
-            // determine whether the agent will starve before its next movement
-            double addedWealth = landscape.getCellAt( newCell.getRow(), newCell.getCol() ).getRegrowthRate() * ( nextMove
-
-                                                                                                                 - time );
-            double metabolized = a.getMetabolicRate() * ( nextMove - time );
+            // determine whether the agent will starve before its next event
+            double addedWealth = landscape.getCellAt( newCell.getRow(),
+                                                      newCell.getCol() ).getRegrowthRate() * ( nextEventTime - time );
+            double metabolized = a.getMetabolicRate() * ( nextEventTime - time );
             double newWealth = a.getWealth() + addedWealth - metabolized;
 
-            // if its wealth drops to 0, it will die before it can move again
+            // if its wealth drops to 0, it will starve before its next event
             if ( newWealth <= 0 )
             {
                 double slope = ( newWealth - a.getWealth() ) / ( nextMove - time );
@@ -378,10 +386,18 @@ class SimulationManager extends GUIManager
             }
             else
             {
-                // TODO: determine whether next event will be a move or an immmune system update
-                Event move = new Event( "move", nextMove, a );
-                eventCalendar.add( move );
-                a.setNextEvent( move );
+                if ( nextEventTime == nextMove )
+                {
+                    Event move = new Event( "move", nextMove, a );
+                    eventCalendar.add( move );
+                    a.setNextEvent( move );
+                }
+                else if ( nextEventTime == nextUpdate )
+                {
+                    Event update = new Event( "update", nextUpdate, a );
+                    eventCalendar.add( update );
+                    a.setNextEvent( update );
+                }
             }
         }
     }

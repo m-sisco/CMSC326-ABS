@@ -1,18 +1,20 @@
-import java.util.HashMap;
-import java.util.Random;
-import java.util.ArrayList;
+import javafx.util.Pair;
+
+import java.util.*;
 
 public class ImmuneSystem {
 
     private String bitString;
     private ArrayList<Disease> diseaseList;
     private HashMap<Disease, Integer> indexMap;
+    private PriorityQueue<Pair<Disease,Event>> updates;  // diseases and when they should update immune sys
 
     private static int SYSTEM_LENGTH = 50;
 
     public ImmuneSystem(){
         diseaseList = new ArrayList<Disease>();
         indexMap = new HashMap<Disease, Integer>();
+        updates = new PriorityQueue<>();
 
         bitString = "";
         Random r = new Random();
@@ -21,7 +23,7 @@ public class ImmuneSystem {
         }
     }
 
-    public void add(Disease d){
+    public void add(Disease d, double time){
         int minMatch = Integer.MAX_VALUE;
         int matchIndex = -1;
 
@@ -38,6 +40,10 @@ public class ImmuneSystem {
 
         diseaseList.add(d);
         indexMap.put(d, matchIndex);
+
+        // pair disease with time to determine which one should be updated next
+        Event diseaseUpdate = new Event( "update", time, null ); // don't really need to connect an agent to these
+        updates.add( new Pair<>( d, diseaseUpdate ) );
     }
 
     public Disease get(int index){return diseaseList.get(index);}
@@ -53,9 +59,11 @@ public class ImmuneSystem {
     }
 
     public void update(){
-        for (int j = diseaseList.size()-1; j >= 0; j--){
-            Disease d = diseaseList.get(j);
+            Pair<Disease, Event> nextUpdate = updates.poll();
+            Disease d = nextUpdate.getKey();
+
             int start = indexMap.get(d);
+            int j = diseaseList.indexOf( d );
 
             boolean change = false;
             for (int i = 0; i < d.getDisease().length() && ! change; i++){
@@ -71,15 +79,37 @@ public class ImmuneSystem {
                 if (match(d.getDisease(), start) == 0){
                     diseaseList.remove(j);
                     indexMap.remove(d);
+                } else {
+                    // add the disease back to the update list with a new time
+                    double nextUpdateTime = nextUpdate.getValue().getTime() + 1;
+                    Event updateEvent = new Event( "update", nextUpdateTime, null );
+
+                    updates.add( new Pair<>( d, updateEvent ) );
                 }
             } else {
                 diseaseList.remove(j);
                 indexMap.remove(d);
             }
-        }
     }
 
     public double getMetabolismChange(){
         return diseaseList.size();
     }
+
+
+    public double getNextUpdateTime()
+    {
+        return updates.peek().getValue().getTime();
+    }
+
+
+    // sorts <disease, event> pairs by event time
+    Comparator<Pair<Disease, Event>> comparator = new Comparator<Pair<Disease, Event>>()
+    {
+        @Override
+        public int compare( Pair<Disease, Event> pair1, Pair<Disease, Event> pair2 )
+        {
+            return pair1.getValue().compareTo( pair2.getValue() );
+        }
+    };
 }
