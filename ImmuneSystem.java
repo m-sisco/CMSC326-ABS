@@ -24,7 +24,6 @@ public class ImmuneSystem {
     }
 
     public void add(Disease d, double time){
-
         // first check whether the agent already has this disease
         if ( indexMap.get( d ) != null ) {
             return;
