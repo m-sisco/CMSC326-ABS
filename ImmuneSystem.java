@@ -9,8 +9,6 @@ public class ImmuneSystem {
     private HashMap<Disease, Integer> indexMap;
     private PriorityQueue<Pair<Disease,Event>> updates;  // diseases and when they should update immune sys
 
-    private static int SYSTEM_LENGTH = 50;
-
     public ImmuneSystem(){
         diseaseList = new ArrayList<Disease>();
         indexMap = new HashMap<Disease, Integer>();
@@ -18,7 +16,7 @@ public class ImmuneSystem {
 
         bitString = "";
         Random r = new Random();
-        for (int i = 0; i < SYSTEM_LENGTH; i++){
+        for (int i = 0; i < Parameters.IMMUNE_SYSTEM_LENGTH; i++){
             bitString += r.nextInt(2);
         }
     }
@@ -32,7 +30,8 @@ public class ImmuneSystem {
         int minMatch = Integer.MAX_VALUE;
         int matchIndex = -1;
 
-        for (int i = 0; i < SYSTEM_LENGTH - d.getDisease().length(); i++){
+        for (int i = 0; i < Parameters.IMMUNE_SYSTEM_LENGTH
+                - d.getDisease().length(); i++){
             int match =  match(d.getDisease(), i);
 
             //if match is 0, dont add disease, person is immune
@@ -98,7 +97,7 @@ public class ImmuneSystem {
     }
 
     public double getMetabolismChange(){
-        return diseaseList.size();
+        return diseaseList.size() * Parameters.DISEASE_IMPACT;
     }
 
 

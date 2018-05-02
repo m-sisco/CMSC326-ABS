@@ -29,9 +29,6 @@ class SimulationManager extends GUIManager
 
     private ArrayList<Disease> diseases = new ArrayList<>();
 
-    private int numDiseases = 25;  // total diseases generated at start
-    private int initialDiseases = 10;  // number of diseases each agent starts with
-
     private int agentCount = 0; // keeps track of total number of agents created
 
     // comparator for ordering cells when an agent moves
@@ -61,7 +58,7 @@ class SimulationManager extends GUIManager
     public SimulationManager(int gridSize, int numAgents, int initialSeed)
     {
         // generate unique diseases
-        while( diseases.size() < numDiseases )
+        while( diseases.size() < Parameters.NUMBER_DISEASES )
         {
             Disease d = new Disease();
             if ( ! diseases.contains( d ) )
@@ -110,7 +107,7 @@ class SimulationManager extends GUIManager
             Collections.shuffle( diseases );
 
 
-            for ( int j = 0; j < initialDiseases; ++j )
+            for ( int j = 0; j < Parameters.BIRTH_DISEASES; ++j )
             {
                 agentImmuneSystem.add( diseases.get( j ), 0 );
             }
@@ -146,13 +143,12 @@ class SimulationManager extends GUIManager
     //======================================================================
     public void run()
     {
-        double maxTime = 100;
         int count = 1;
 
         Event nextEvent = eventCalendar.poll();
 
         // get each event in the calendar until maxTime
-        while ( nextEvent.getTime() < maxTime )
+        while ( nextEvent.getTime() < Parameters.END_TIME)
         {
             time = nextEvent.getTime();
 
@@ -198,7 +194,7 @@ class SimulationManager extends GUIManager
 
                 // set the new agent's diseases randomly from the list
                 Collections.shuffle( diseases );
-                for ( int i = 0; i < initialDiseases; ++i  )
+                for ( int i = 0; i < Parameters.BIRTH_DISEASES; ++i  )
                 {
                     newAgent.getImmuneSys().add( diseases.get(i), time );
                 }

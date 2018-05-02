@@ -176,6 +176,7 @@ class AgentCanvas extends JPanel
                 //graphics.setPaint( colors[ i % colors.length ] );
                 Color c = new Color(Math.min(255, a.getImmuneSys().size() * 25), 0,
                         Math.max(0, 255 - a.getImmuneSys().size() * 25));
+
                 graphics.setPaint(c);
 
                 /*

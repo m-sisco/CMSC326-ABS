@@ -10,7 +10,8 @@ public class Disease {
 
         disease = new String();
         Random r = new Random();
-        int l = r.nextInt(7)+3; // random length from 3 to 10
+        int l = r.nextInt(Parameters.MAX_DISEASE_LENGTH - Parameters.MIN_DISEASE_LENGTH)
+                +Parameters.MIN_DISEASE_LENGTH; // random length from 3 to 10
         for (int i = 0; i < l; i++){
             int s = r.nextInt(2);
             char c=(char)(s+'0');
@@ -20,7 +21,7 @@ public class Disease {
 
     public Disease(Disease d){
         Random r = new Random();
-        int mut = r.nextInt(10);
+        int mut = r.nextInt((int)(1/Parameters.MUTATION_PROBABILITY));
         String dis = d.getDisease();
         int len = dis.length();
         disease = new String();
