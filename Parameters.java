@@ -12,7 +12,7 @@ public class Parameters {
     //number of diseases given to an agent at birth
     public static final int BIRTH_DISEASES = 10;
     //probablity of mutation when transfering a disease
-    public static final double MUTATION_PROBABILITY = .1;
+    public static final double MUTATION_PROBABILITY = .01;
     //time simulation will end
     public static final int END_TIME = 100;
 }
