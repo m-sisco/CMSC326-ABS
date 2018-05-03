@@ -1,0 +1,7 @@
+Marissa Sisco, Rachel Culpepper, and Tanner Bina
+
+Adding Disease Simulation to Sugarscape
+
+Our project added disease simulation to sugarscape. To run our project, simply compile and run the Simulation Manager. All parameters for our project are stored in the Parameters class. You can edit any of the static variables to alter the simulation. 
+
+The core design features of our project is the addition of a disease and immune system class. These were both designed as bit strings as recommended by Growing Artificial Society. We also allow diseases to mutate to create realistic variation in the disese present in society over time. The key design decision about mutation was to have the mutation transfer to the new host while the old host retains the original disease. The immune system works by matching diseases to substrings. The closer the match, the closer the immune system is to being immune to the disease. Our other major design decision was how a disease effects agents. Our diseases simply increase the metabolism of a host by a uniform amount. Although not quite realistic, this implementation allows for us to focus on the spread of disease through the population rather than focus on how diseases themselves effect the population. All implementation and design decisions are discussed much more in depth in our writeup.
