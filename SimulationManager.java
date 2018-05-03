@@ -1,11 +1,18 @@
 import squint.*;
 import javax.swing.*;
 import java.awt.BorderLayout;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.util.*;
 
 
 class SimulationManager extends GUIManager
 {
+    // whether to write data about avg diseases and healthy agents to a file
+    private boolean WRITE_OUTPUT_DATA = true;
+    private String output_file_name = "len-" + Parameters.MAX_DISEASE_LENGTH + "-disease.csv";
+
     // default window width and height defined as constants
     private final int WINDOW_WIDTH  = 500;
     private final int WINDOW_HEIGHT = 500;
@@ -100,11 +107,10 @@ class SimulationManager extends GUIManager
             landscape.getCellAt( row, col ).setAgent( a );
 
             // start each agent with 10 random, distinct diseases
-            int numDiseases = 10;
             ImmuneSystem agentImmuneSystem = a.getImmuneSys();
 
             // mix up the disease list to get 10 random, distinct diseases
-            Collections.shuffle( diseases );
+            Collections.shuffle( diseases, rng );
 
 
             for ( int j = 0; j < Parameters.BIRTH_DISEASES; ++j )
@@ -143,6 +149,38 @@ class SimulationManager extends GUIManager
     //======================================================================
     public void run()
     {
+        // for writing data on each simulation
+        BufferedWriter writer = null;
+
+        if ( WRITE_OUTPUT_DATA )
+        {
+            try
+            {
+                writer = new BufferedWriter( new FileWriter( new File( output_file_name ) ) );
+
+            }
+            catch ( Exception e )
+            {
+                System.err.println( "Creation of output file failed" );
+                System.exit( 1 );
+            }
+
+            try
+            {
+                writer.write( "time, avgDiseases, propHealthy\n" );
+            }
+            catch ( Exception e )
+            {
+                System.err.println( "Error writing file" );
+            }
+
+
+            // write data for initial state
+            writeData( writer );
+        }
+
+
+        // agents are redrawn approximately every unit time
         int count = 1;
 
         Event nextEvent = eventCalendar.poll();
@@ -193,7 +231,7 @@ class SimulationManager extends GUIManager
 
 
                 // set the new agent's diseases randomly from the list
-                Collections.shuffle( diseases );
+                Collections.shuffle( diseases, rng );
                 for ( int i = 0; i < Parameters.BIRTH_DISEASES; ++i  )
                 {
                     newAgent.getImmuneSys().add( diseases.get(i), time );
@@ -201,6 +239,13 @@ class SimulationManager extends GUIManager
 
                 setFutureEvent( newAgent );
             }
+
+
+            if ( WRITE_OUTPUT_DATA )
+            {
+                writeData( writer );
+            }
+
 
             nextEvent = eventCalendar.poll();
 
@@ -237,6 +282,21 @@ class SimulationManager extends GUIManager
         }
 
         System.out.println( agentCount );
+        System.out.println( time );
+
+
+        if ( WRITE_OUTPUT_DATA )
+        {
+            try
+            {
+                writer.close();
+            }
+            catch( Exception e )
+            {
+                System.err.println( "Problem closing output file" );
+            }
+        }
+
     }
 
 
@@ -455,6 +515,44 @@ class SimulationManager extends GUIManager
     }
 
 
+    /* Calculates the average number of diseases per agent and the proportion
+     * of healthy agents and writes these to the writer along with the current
+     * time, in csv format.
+     */
+    public void writeData( BufferedWriter writer )
+    {
+        // collecting data on avg number of diseases and percentage of healthy agents
+        double avgDiseases = 0;
+        double healthyAgents = 0;
+
+        for ( Agent agent : agentList )
+        {
+            avgDiseases += agent.getImmuneSys().size();
+
+            if ( agent.getImmuneSys().size() == 0 )
+            {
+                ++healthyAgents;
+            }
+        }
+
+        avgDiseases = avgDiseases / agentList.size();
+        healthyAgents = healthyAgents / agentList.size();
+
+
+        try
+        {
+            writer.write( time + ", " );
+            writer.write( avgDiseases + ", " );
+            writer.write( healthyAgents + "\n" );
+        }
+        catch ( Exception e )
+        {
+            System.err.println( "Writing to file failed" );
+        }
+    }
+
+
+
     //======================================================================
     //* public static void main(String[] args)
     //* Just including main so that the simulation can be executed from the
@@ -464,6 +562,6 @@ class SimulationManager extends GUIManager
     //======================================================================
     public static void main(String[] args)
     {
-        new SimulationManager(40, 400, 8675309);
+        new SimulationManager(40, 400, Parameters.SIM_SEED);
     }
 }

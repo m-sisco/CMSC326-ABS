@@ -4,6 +4,8 @@ import java.util.*;
 
 public class ImmuneSystem {
 
+    private static Random r = new Random( Parameters.IMMUNE_SEED );
+
     private String bitString;
     private ArrayList<Disease> diseaseList;
     private HashMap<Disease, Integer> indexMap;
@@ -15,7 +17,6 @@ public class ImmuneSystem {
         updates = new PriorityQueue<>( 10, comparator );
 
         bitString = "";
-        Random r = new Random();
         for (int i = 0; i < Parameters.IMMUNE_SYSTEM_LENGTH; i++){
             bitString += r.nextInt(2);
         }

@@ -5,13 +5,13 @@ import java.util.Random;
  */
 public class Disease {
     private String disease;
+    private static Random r = new Random( Parameters.DISEASE_SEED );
 
     public Disease(){
 
         disease = new String();
-        Random r = new Random();
         int l = r.nextInt(Parameters.MAX_DISEASE_LENGTH - Parameters.MIN_DISEASE_LENGTH)
-                +Parameters.MIN_DISEASE_LENGTH; // random length from 3 to 10
+                +Parameters.MIN_DISEASE_LENGTH; // random length from MIN to MAX
         for (int i = 0; i < l; i++){
             int s = r.nextInt(2);
             char c=(char)(s+'0');
@@ -20,7 +20,6 @@ public class Disease {
     }
 
     public Disease(Disease d){
-        Random r = new Random();
         int mut = r.nextInt((int)(1/Parameters.MUTATION_PROBABILITY));
         String dis = d.getDisease();
         int len = dis.length();

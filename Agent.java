@@ -2,7 +2,7 @@ import java.util.Random;
 
 public class Agent
 {
-    private static Random r = new Random( 168522 );
+    private static Random r = new Random( Parameters.AGENT_SEED );
 
     private String id;   // identifier for the agent
 
