@@ -48,7 +48,7 @@
     \begin{enumerate}
      \item First, we added infection to the "move" event, so that after an agent moves it gets a random disease
      from each of its neighbors (if its neighbors have diseases). These diseases are added to the agent's immune
-     system, and they are taken into account when determining the agent's next move. When each disease is added
+     system, and they are taken into account when determining the agent's next event. When each disease is added
      to the agent's immune system, it will flip one of its bits with probability $MUTATION\_PROBABILITY$.
      
      \item Second, we added an event for updating the immune system in response to a disease. When each disease is
